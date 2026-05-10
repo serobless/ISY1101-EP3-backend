@@ -1,0 +1,44 @@
+# Named volume en vez de bind mount: Docker gestiona el almacenamiento,
+# evita problemas de permisos entre host y contenedor, y es portátil
+# entre Linux/Mac/Windows sin ajustar rutas.
+
+services:
+  mysql-ventas:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ventas_db
+      MYSQL_USER: ventas_user
+      MYSQL_PASSWORD: ventas_pass
+    volumes:
+      - mysql_ventas_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ventas-network
+
+  app-ventas:
+    build:
+      context: ./Springboot-API-REST
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-ventas:3306/ventas_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true
+      DB_USERNAME: ventas_user
+      DB_PASSWORD: ventas_pass
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql-ventas:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ventas-network
+
+networks:
+  ventas-network:
+    driver: bridge
+
+volumes:
+  mysql_ventas_data:
