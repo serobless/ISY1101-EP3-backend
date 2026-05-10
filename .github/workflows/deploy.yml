@@ -40,7 +40,13 @@ jobs:
           script: |
             cd /home/ec2-user/app
             docker pull serobless/isy1101-ep2-back-ventas:latest
-            SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
-            DB_USERNAME=${{ secrets.DB_USERNAME }} \
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-            docker compose up -d --no-build app-ventas
+            docker stop app-ventas || true
+            docker rm app-ventas || true
+            docker run -d \
+              --name app-ventas \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              -e SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
+              -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              serobless/isy1101-ep2-back-ventas:latest
